@@ -2,28 +2,28 @@ import '../../core/constants/enums.dart';
 
 class TripMember {
   const TripMember({
+    required this.tripId,
     required this.userId,
     this.role = MemberRole.coCreator,
     this.approved = false,
+    this.joinedAt,
   });
 
+  final String tripId;
   final String userId;
   final MemberRole role;
+
+  /// Has this creator approved publishing / the pending revision?
   final bool approved;
+  final DateTime? joinedAt;
 
-  Map<String, dynamic> toMap() => {
-    'user_id': userId,
-    'role': role.name,
-    'approved': approved,
-  };
-
-  factory TripMember.fromMap(Map<String, dynamic> map) => TripMember(
-    userId: map['user_id'] as String? ?? map['userId'] as String? ?? '',
-    role: enumFromName(
-      MemberRole.values,
-      map['role'] as String?,
-      MemberRole.coCreator,
-    ),
-    approved: map['approved'] as bool? ?? false,
+  factory TripMember.fromJson(Map<String, dynamic> m) => TripMember(
+    tripId: m['trip_id'] as String,
+    userId: m['user_id'] as String,
+    role: MemberRole.fromDb(m['role'] as String?),
+    approved: m['approved'] as bool? ?? false,
+    joinedAt: m['joined_at'] == null
+        ? null
+        : DateTime.parse(m['joined_at'] as String),
   );
 }

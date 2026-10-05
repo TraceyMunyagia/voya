@@ -3,14 +3,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/repositories/trip_repository.dart';
 
-final supabaseClientProvider = Provider<SupabaseClient>(
+final supabaseProvider = Provider<SupabaseClient>(
   (ref) => Supabase.instance.client,
 );
 
+/// Emits when the authentication session changes or refreshes.
 final authStateProvider = StreamProvider<AuthState>(
-  (ref) => ref.watch(supabaseClientProvider).auth.onAuthStateChange,
+  (ref) => ref.watch(supabaseProvider).auth.onAuthStateChange,
 );
 
+/// The signed-in user (or null), rebuilt whenever auth state changes.
+final currentUserProvider = Provider<User?>((ref) {
+  ref.watch(authStateProvider);
+  return ref.watch(supabaseProvider).auth.currentUser;
+});
+
 final tripRepositoryProvider = Provider<TripRepository>(
-  (ref) => TripRepository(ref.watch(supabaseClientProvider)),
+  (ref) => TripRepository(ref.watch(supabaseProvider)),
 );

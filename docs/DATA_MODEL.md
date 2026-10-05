@@ -1,38 +1,33 @@
-# Voya Supabase data model (v1)
+# Voya Postgres data model (v1)
 
 ```
-users (id = auth.users.id)
-  username, displayName, photoUrl, bio, city,
-  followersCount, followingCount, tripsCount
-  saves/{tripId}          savedAt, collectionIds[]
-  collections/{id}        name, tripIds[]
+auth.users                       (managed by Supabase Auth)
+  └─ profiles                    id = auth.users.id, username (unique, nullable), display_name,
+                                 photo_url, bio, city, followers_count, following_count, trips_count
 
-trips (id)
-  ownerId, memberIds[]            <- owner + co-creators (queries + rules)
-  title, description, destinations[], startDate, endDate
-  travellers, type, status        <- draft | review | published | revision
-  coverPhotoUrl, currency, totalCost, costPerPerson
-  approvals { uid: bool }, originTripId (Make This Trip Mine)
-  likeCount, commentCount, saveCount, createdAt, updatedAt
+trips                            owner_id, title, description, destinations[], start_date, end_date,
+                                 travellers, type, status (draft|review|published|revision),
+                                 cover_photo_url, currency, total_cost, cost_per_person,
+                                 origin_trip_id (Make This Trip Mine), like/comment/save counts
+  ├─ trip_members                (trip_id, user_id) role owner|co_creator, approved
+  ├─ trip_days                   day_number, title, story, photo_urls[]
+  │    └─ itinerary_items        category, title, description, cost_amount/currency/basis,
+  │                              location jsonb, links jsonb, photo_urls[], notes, rating,
+  │                              sort_order, details jsonb
+  └─ trip_activity               actor_id, type, target_id, summary   (append-only)
 
-  days (trip_id, id)      dayNumber, title, story, photoUrls[]
-    items (day_id, id)    category, title, description, cost{amount,currency,basis},
-                          location{name,lat,lng,placeId,address,mapsUrl},
-                          links[{label,url}], photoUrls[], notes, rating, order,
-                          details{ category-specific fields }
+Later weeks: likes, comments (W9) · follows (W10) · saves, collections (W10) · notifications (W11+)
+             trip_invites (W15) · trip_revisions (W20)
 
-  activity/{id}           actorId, type, targetId, summary, createdAt   (append-only)
-  likes/{uid}  comments/{id}                                             (Week 9)
-  follows: users/{uid}/following/{uid2}                                   (Week 10)
+Storage buckets: avatars/{user_id}/...   trip-photos/{trip_id}/...
 ```
-
-The canonical SQL lives in `supabase/migrations/`. Dart models use snake_case
-keys for rows returned by Postgres; nested values such as cost, location, and
-links are stored as JSONB.
 
 ## Decisions
-- One `items` subcollection for all four categories; category-specific fields live in `details`.
-- `member_ids` is denormalised on the trip so RLS checks and array queries stay cheap.
-- Clients never set `status = published`; a database function does after all approvals.
-- `totalCost` / `costPerPerson` are denormalised for feed cards and recomputed server-side.
-- No clock times on items; `order` gives free arrangement within a day.
+- Co-creators and approvals are rows in `trip_members` (not arrays), so the approval flow is a simple query.
+- One `itinerary_items` table for all four categories; category-specific fields live in `details`.
+- `itinerary_items (day_id, trip_id)` is a composite foreign key, so an item cannot point at another trip's day.
+- Clients never set `status = 'published'`; a Postgres function does after all members approve (Week 18).
+- `total_cost` / `cost_per_person` are denormalised for feed cards and recomputed server-side from Week 8.
+- No clock times on items; `sort_order` gives free arrangement within a day.
+- A profile row is created for every new auth user by a trigger; the username is claimed in Week 2.
+- Known gap: members can currently write counter columns on their own trips. Week 9 moves counters to triggers.

@@ -16,17 +16,24 @@ class CreateTripScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: FilledButton(
             onPressed: () async {
-              final supabase = ref.read(supabaseClientProvider);
-              final user =
-                  supabase.auth.currentUser ??
-                  (await supabase.auth.signInAnonymously()).user!;
-              final id = await ref
-                  .read(tripRepositoryProvider)
-                  .createDraft(ownerId: user.id, title: 'Test draft');
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Created trip $id')));
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                final db = ref.read(supabaseProvider);
+                if (db.auth.currentUser == null) {
+                  await db.auth.signInAnonymously();
+                }
+                final trip = await ref
+                    .read(tripRepositoryProvider)
+                    .createDraft(title: 'Test draft');
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Created ${trip.id} with ${trip.memberIds.length} member(s)',
+                    ),
+                  ),
+                );
+              } catch (e) {
+                messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
               }
             },
             child: const Text('Create test draft'),

@@ -15,21 +15,21 @@ class PlaceRef {
   final String? address;
   final String? mapsUrl;
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
     'name': name,
     'latitude': latitude,
     'longitude': longitude,
-    'placeId': placeId,
+    'place_id': placeId,
     'address': address,
-    'mapsUrl': mapsUrl,
+    'maps_url': mapsUrl,
   };
 
-  factory PlaceRef.fromMap(Map<String, dynamic> m) => PlaceRef(
+  factory PlaceRef.fromJson(Map<String, dynamic> m) => PlaceRef(
     name: m['name'] as String? ?? '',
     latitude: (m['latitude'] as num?)?.toDouble(),
     longitude: (m['longitude'] as num?)?.toDouble(),
-    placeId: m['placeId'] as String?,
+    placeId: m['place_id'] as String?,
     address: m['address'] as String?,
-    mapsUrl: m['mapsUrl'] as String?,
+    mapsUrl: m['maps_url'] as String?,
   );
 }

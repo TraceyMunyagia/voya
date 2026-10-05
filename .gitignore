@@ -12,7 +12,7 @@
 .swiftpm/
 migrate_working_dir/
 .env
-
+voya/build/
 # IntelliJ related
 *.iml
 *.ipr

@@ -4,9 +4,9 @@ class ItemLink {
   final String label; // e.g. "Booking", "Instagram"
   final String url;
 
-  Map<String, dynamic> toMap() => {'label': label, 'url': url};
+  Map<String, dynamic> toJson() => {'label': label, 'url': url};
 
-  factory ItemLink.fromMap(Map<String, dynamic> m) => ItemLink(
+  factory ItemLink.fromJson(Map<String, dynamic> m) => ItemLink(
     label: m['label'] as String? ?? '',
     url: m['url'] as String? ?? '',
   );

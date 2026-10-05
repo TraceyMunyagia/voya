@@ -6,47 +6,38 @@ class Cost {
     this.amount = 0,
     this.currency = AppConstants.defaultCurrency,
     this.basis = CostBasis.oneTime,
-    this.quantity = 1,
   });
 
   final double amount;
   final String currency;
   final CostBasis basis;
-  final int quantity;
 
   /// Total cost of this line for the whole group.
-  double total({int people = 1, int nights = 1}) {
+  double total({required int people, int nights = 1}) {
     switch (basis) {
       case CostBasis.free:
         return 0;
       case CostBasis.perPerson:
         return amount * people;
       case CostBasis.perNight:
-        return amount * nights * quantity;
+        return amount * nights;
       case CostBasis.perGroup:
       case CostBasis.perVehicle:
       case CostBasis.oneTime:
-        return amount * quantity;
+        return amount;
     }
   }
 
-  Map<String, dynamic> toMap() => {
-    'amount': amount,
-    'currency': currency,
-    'basis': basis.name,
+  /// The three flat columns on `itinerary_items`.
+  Map<String, dynamic> toColumns() => {
+    'cost_amount': amount,
+    'cost_currency': currency,
+    'cost_basis': basis.db,
   };
 
-  factory Cost.fromMap(Map<String, dynamic>? m) {
-    if (m == null) return const Cost();
-    return Cost(
-      amount: (m['amount'] as num?)?.toDouble() ?? 0,
-      currency: m['currency'] as String? ?? AppConstants.defaultCurrency,
-      basis: enumFromName(
-        CostBasis.values,
-        m['basis'] as String?,
-        CostBasis.oneTime,
-      ),
-      quantity: (m['quantity'] as num?)?.toInt() ?? 1,
-    );
-  }
+  factory Cost.fromColumns(Map<String, dynamic> m) => Cost(
+    amount: (m['cost_amount'] as num?)?.toDouble() ?? 0,
+    currency: m['cost_currency'] as String? ?? AppConstants.defaultCurrency,
+    basis: CostBasis.fromDb(m['cost_basis'] as String?),
+  );
 }

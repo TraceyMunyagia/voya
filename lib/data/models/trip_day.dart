@@ -1,7 +1,8 @@
-/// A day has no clock times; items are just ordered by [ItineraryItem.order].
+/// A day has no clock times; items are just ordered by sort_order.
 class TripDay {
   const TripDay({
     required this.id,
+    required this.tripId,
     required this.dayNumber,
     this.title = '',
     this.story = '',
@@ -9,23 +10,26 @@ class TripDay {
   });
 
   final String id;
+  final String tripId;
   final int dayNumber;
   final String title; // "Arrival & Exploring"
   final String story;
   final List<String> photoUrls;
 
-  Map<String, dynamic> toMap() => {
-    'dayNumber': dayNumber,
+  Map<String, dynamic> toJson() => {
+    'trip_id': tripId,
+    'day_number': dayNumber,
     'title': title,
     'story': story,
-    'photoUrls': photoUrls,
+    'photo_urls': photoUrls,
   };
 
-  factory TripDay.fromMap(String id, Map<String, dynamic> m) => TripDay(
-    id: id,
-    dayNumber: (m['dayNumber'] as num?)?.toInt() ?? 1,
+  factory TripDay.fromJson(Map<String, dynamic> m) => TripDay(
+    id: m['id'] as String,
+    tripId: m['trip_id'] as String,
+    dayNumber: (m['day_number'] as num?)?.toInt() ?? 1,
     title: m['title'] as String? ?? '',
     story: m['story'] as String? ?? '',
-    photoUrls: List<String>.from((m['photoUrls'] as List?) ?? []),
+    photoUrls: List<String>.from((m['photo_urls'] as List?) ?? []),
   );
 }
