@@ -12,7 +12,7 @@ Future<void> main() async {
   if (Env.supabaseUrl.isEmpty || Env.supabaseAnonKey.isEmpty) {
     throw StateError(
       'Missing SUPABASE_URL / SUPABASE_ANON_KEY. '
-      'Run with --dart-define-from-file=env.json',
+      'Run with Supabase dart-define values. See README.md.',
     );
   }
 

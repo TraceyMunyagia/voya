@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart';
 
 /// Turns any exception into a sentence a traveller can act on.
 String friendlyError(Object e) {
@@ -27,5 +28,11 @@ String friendlyError(Object e) {
   }
   if (e is StorageException) return e.message;
   if (e is SocketException) return 'No internet connection.';
+  if (e is PlatformException) {
+    if (e.code.contains('denied')) {
+      return 'Voya does not have permission. Allow photo or camera access in Settings.';
+    }
+    return e.message ?? 'Could not open the photo picker.';
+  }
   return 'Something went wrong. Please try again.';
 }

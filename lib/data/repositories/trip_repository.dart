@@ -9,12 +9,23 @@ class TripRepository {
   final SupabaseClient _db;
 
   /// Trip plus its owner / co-creators.
-  static const _withMembers = '*, trip_members(*)';
-
+  static const _withMembers =
+      '*, trip_members(*, profiles(id, username, display_name, photo_url))';
   String get _uid {
     final user = _db.auth.currentUser;
     if (user == null) throw StateError('Not signed in');
     return user.id;
+  }
+
+  /// Newest published trips for the feed (Week 9 adds following / trending).
+  Future<List<Trip>> publishedTrips({int limit = 20, int offset = 0}) async {
+    final rows = await _db
+        .from(Tbl.trips)
+        .select(_withMembers)
+        .eq('status', 'published')
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
+    return rows.map(Trip.fromJson).toList();
   }
 
   /// Creates an empty private draft. A database trigger adds the creator

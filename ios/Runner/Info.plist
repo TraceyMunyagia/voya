@@ -6,6 +6,8 @@
 <string>Voya needs access to your photos so you can choose a profile picture and trip photos.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+<string>Voya uses the camera so you can take photos for your trips.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// Profile photo, or initials on a sand circle when there is no photo.
 class UserAvatar extends StatelessWidget {
@@ -21,7 +22,7 @@ class UserAvatar extends StatelessWidget {
     return CircleAvatar(
       radius: radius,
       backgroundColor: AppColors.sand,
-      foregroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
+      foregroundImage: hasPhoto ? CachedNetworkImageProvider(photoUrl!) : null,
       child: Text(
         initials,
         style: TextStyle(

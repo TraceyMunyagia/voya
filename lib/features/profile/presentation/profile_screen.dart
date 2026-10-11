@@ -1,13 +1,46 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../providers/auth_providers.dart';
 
-enum _MenuAction { edit }
+enum _MenuAction { edit, signOut, gallery }
+
+Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+  final shouldSignOut = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Sign out?'),
+      content: const Text('You can sign back in at any time.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Sign out'),
+        ),
+      ],
+    ),
+  );
+
+  if (shouldSignOut != true) return;
+
+  try {
+    await ref.read(authRepositoryProvider).signOut();
+  } catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Could not sign out: $error')));
+  }
+}
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -27,12 +60,30 @@ class ProfileScreen extends ConsumerWidget {
         title: Text('@${profile.username ?? ''}'),
         actions: [
           PopupMenuButton<_MenuAction>(
-            onSelected: (_) => context.push(Routes.editProfile),
-            itemBuilder: (context) => const [
-              PopupMenuItem(
+            onSelected: (a) {
+              switch (a) {
+                case _MenuAction.edit:
+                  context.push(Routes.editProfile);
+                case _MenuAction.signOut:
+                  _confirmSignOut(context, ref);
+                case _MenuAction.gallery:
+                  context.push(Routes.gallery);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
                 value: _MenuAction.edit,
                 child: Text('Edit profile'),
               ),
+              const PopupMenuItem(
+                value: _MenuAction.signOut,
+                child: Text('Sign out'),
+              ),
+              if (kDebugMode)
+                const PopupMenuItem(
+                  value: _MenuAction.gallery,
+                  child: Text('Component gallery'),
+                ),
             ],
           ),
         ],
@@ -112,27 +163,12 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           Text('Published trips', style: text.titleMedium),
           const SizedBox(height: AppSpacing.sm),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                children: [
-                  Icon(Icons.luggage_outlined, size: 40, color: scheme.primary),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text('No trips yet', style: text.titleMedium),
-                  const SizedBox(height: AppSpacing.xs),
-                  const Text(
-                    'Your published trips will appear here.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  FilledButton(
-                    onPressed: () => context.push(Routes.create),
-                    child: const Text('Create a trip'),
-                  ),
-                ],
-              ),
-            ),
+          EmptyState(
+            icon: Icons.luggage_outlined,
+            title: 'No trips yet',
+            message: 'Your published trips will appear here.',
+            actionLabel: 'Create a trip',
+            onAction: () => context.push(Routes.create),
           ),
         ],
       ),

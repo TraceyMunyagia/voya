@@ -26,8 +26,9 @@ class UsernameRules {
     if (v.isEmpty) return 'Pick a username';
     if (v.length < minLength) return 'At least $minLength characters';
     if (v.length > maxLength) return 'At most $maxLength characters';
-    if (!_pattern.hasMatch(v))
+    if (!_pattern.hasMatch(v)) {
       return 'Use lowercase letters, numbers and underscores only';
+    }
     if (reserved.contains(v)) return 'That username is reserved';
     return null;
   }

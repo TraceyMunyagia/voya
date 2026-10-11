@@ -50,4 +50,6 @@ class AuthRepository {
   Future<UserResponse> updatePassword(String newPassword) {
     return _auth.updateUser(UserAttributes(password: newPassword));
   }
+
+  Future<void> signOut() => _auth.signOut();
 }

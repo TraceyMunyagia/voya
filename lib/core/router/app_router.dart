@@ -22,6 +22,7 @@ import 'app_shell.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import 'auth_redirect.dart';
 import 'routes.dart';
+import '../../features/dev/presentations/component_gallery_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Re-run the redirect whenever the user or their profile changes.
@@ -123,6 +124,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.editProfile,
         builder: (context, state) => const EditProfileScreen(),
       ),
+      if (kDebugMode)
+        GoRoute(
+          path: Routes.gallery,
+          builder: (context, state) => const ComponentGalleryScreen(),
+        ),
     ],
   );
 

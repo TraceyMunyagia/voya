@@ -1,6 +1,7 @@
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/enums.dart';
 import 'trip_member.dart';
+import 'app_user.dart';
 
 DateTime? _dt(dynamic v) => v == null ? null : DateTime.parse(v as String);
 
@@ -68,9 +69,26 @@ class Trip {
   bool get allApproved =>
       members.isNotEmpty && members.every((m) => m.approved);
 
-  int get nights => (startDate != null && endDate != null)
-      ? endDate!.difference(startDate!).inDays
-      : 0;
+  /// Whole nights between start and end (date only, so daylight saving can't skew it).
+  int get nights {
+    if (startDate == null || endDate == null) return 0;
+    final s = DateTime.utc(startDate!.year, startDate!.month, startDate!.day);
+    final e = DateTime.utc(endDate!.year, endDate!.month, endDate!.day);
+    return e.difference(s).inDays;
+  }
+
+  /// Number of days counting both the first and the last (null without dates).
+  int? get days => (startDate == null || endDate == null) ? null : nights + 1;
+
+  /// Owner first, then co-creators; only those whose profile was loaded.
+  List<AppUser> get creators {
+    final owners = members.where((m) => m.role == MemberRole.owner);
+    final others = members.where((m) => m.role != MemberRole.owner);
+    return [
+      ...owners,
+      ...others,
+    ].map((m) => m.profile).whereType<AppUser>().toList();
+  }
 
   /// Editable fields only. Status, counts and costs change through
   /// dedicated actions, not through a generic update.

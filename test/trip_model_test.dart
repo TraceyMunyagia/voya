@@ -49,4 +49,48 @@ void main() {
     );
     expect(trip.toUpdateJson()['start_date'], '2026-12-01');
   });
+  test('days counts both ends and a single day counts as one', () {
+    final four = Trip(
+      id: 't',
+      ownerId: 'u',
+      title: 'x',
+      startDate: DateTime(2026, 12, 1),
+      endDate: DateTime(2026, 12, 4),
+    );
+    expect(four.nights, 3);
+    expect(four.days, 4);
+
+    final one = Trip(
+      id: 't',
+      ownerId: 'u',
+      title: 'x',
+      startDate: DateTime(2026, 12, 1),
+      endDate: DateTime(2026, 12, 1),
+    );
+    expect(one.days, 1);
+    expect(Trip(id: 't', ownerId: 'u', title: 'x').days, isNull);
+  });
+
+  test('creators come from embedded profiles, owner first', () {
+    final trip = Trip.fromJson({
+      'id': 't1',
+      'owner_id': 'u1',
+      'title': 'x',
+      'trip_members': [
+        {
+          'trip_id': 't1',
+          'user_id': 'u2',
+          'role': 'co_creator',
+          'profiles': {'id': 'u2', 'display_name': 'Mary'},
+        },
+        {
+          'trip_id': 't1',
+          'user_id': 'u1',
+          'role': 'owner',
+          'profiles': {'id': 'u1', 'display_name': 'Tracey'},
+        },
+      ],
+    });
+    expect(trip.creators.map((c) => c.displayName), ['Tracey', 'Mary']);
+  });
 }
