@@ -2,6 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../models/trip.dart';
+import '../../core/constants/enums.dart';
+import '../../core/utils/dates.dart';
 
 class TripRepository {
   TripRepository(this._db);
@@ -72,5 +74,42 @@ class TripRepository {
         .stream(primaryKey: ['id'])
         .eq('id', id)
         .map((rows) => rows.isEmpty ? null : Trip.fromJson(rows.first));
+  }
+
+  /// Creates a private draft with its basics. Days are created separately
+  /// with DayRepository.syncToCount.
+  Future<Trip> create({
+    required String title,
+    List<String> destinations = const [],
+    TripType type = TripType.solo,
+    int travellers = 1,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final row = await _db
+        .from(Tbl.trips)
+        .insert({
+          'owner_id': _uid,
+          'title': title,
+          'status': 'draft',
+          'destinations': destinations,
+          'type': type.name,
+          'travellers': travellers,
+          'start_date': startDate == null ? null : Dates.iso(startDate),
+          'end_date': endDate == null ? null : Dates.iso(endDate),
+        })
+        .select('id')
+        .single();
+    return getTrip(row['id'] as String);
+  }
+
+  /// Partial update, e.g. `{'title': 'Diani', 'cover_photo_url': url}`.
+  Future<void> updateFields(String id, Map<String, dynamic> values) async {
+    await _db.from(Tbl.trips).update(values).eq('id', id).select('id').single();
+  }
+
+  /// Only the owner can delete, and only while it is a draft (row security).
+  Future<void> delete(String id) async {
+    await _db.from(Tbl.trips).delete().eq('id', id).select('id').single();
   }
 }

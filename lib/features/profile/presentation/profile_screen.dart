@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../providers/auth_providers.dart';
+import 'widgets/my_trips_section.dart';
 
 enum _MenuAction { edit, signOut, gallery }
 
@@ -161,15 +161,9 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Published trips', style: text.titleMedium),
+          Text('My trips', style: text.titleMedium),
           const SizedBox(height: AppSpacing.sm),
-          EmptyState(
-            icon: Icons.luggage_outlined,
-            title: 'No trips yet',
-            message: 'Your published trips will appear here.',
-            actionLabel: 'Create a trip',
-            onAction: () => context.push(Routes.create),
-          ),
+          const MyTripsSection(),
         ],
       ),
     );

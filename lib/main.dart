@@ -10,10 +10,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (Env.supabaseUrl.isEmpty || Env.supabaseAnonKey.isEmpty) {
-    throw StateError(
-      'Missing SUPABASE_URL / SUPABASE_ANON_KEY. '
-      'Run with Supabase dart-define values. See README.md.',
-    );
+    // Show the problem on screen instead of a blank white app.
+    runApp(const _MissingConfigApp());
+    return;
   }
 
   await Supabase.initialize(
@@ -23,4 +22,29 @@ Future<void> main() async {
   listenForPasswordRecovery(Supabase.instance.client);
 
   runApp(const ProviderScope(child: VoyaApp()));
+}
+
+class _MissingConfigApp extends StatelessWidget {
+  const _MissingConfigApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(
+              child: Text(
+                'Missing SUPABASE_URL / SUPABASE_ANON_KEY.\n\n'
+                'Run with:\nflutter run --dart-define-from-file=env.json',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

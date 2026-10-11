@@ -121,4 +121,20 @@ class StorageRepository {
       await _storage.from(Buckets.tripPhotos).remove(paths);
     }
   }
+
+  /// Removes every file (photos and thumbnails) under `trip-photos/{tripId}/`.
+  /// Call this BEFORE deleting the trip row: the storage policy checks
+  /// membership, which disappears with the row.
+  Future<void> deleteTripFolder(String tripId) async {
+    final bucket = _storage.from(Buckets.tripPhotos);
+    final files = await bucket.list(
+      path: tripId,
+      searchOptions: const SearchOptions(limit: 1000),
+    );
+    final paths = files
+        .where((f) => f.id != null)
+        .map((f) => '$tripId/${f.name}')
+        .toList();
+    if (paths.isNotEmpty) await bucket.remove(paths);
+  }
 }

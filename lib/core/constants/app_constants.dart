@@ -4,6 +4,8 @@ class AppConstants {
   static const maxPhotosPerItem = 10;
   static const minPasswordLength = 8;
   static const authRedirect = 'app.voya://login-callback';
+  static const maxTripDays = 60;
+  static const maxDestinations = 10;
 }
 
 /// Table names in one place.

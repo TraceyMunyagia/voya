@@ -1,15 +1,10 @@
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/enums.dart';
 import 'trip_member.dart';
+import '../../core/utils/dates.dart';
 import 'app_user.dart';
 
 DateTime? _dt(dynamic v) => v == null ? null : DateTime.parse(v as String);
-
-String? _dateOnly(DateTime? d) => d == null
-    ? null
-    : '${d.year.toString().padLeft(4, '0')}-'
-          '${d.month.toString().padLeft(2, '0')}-'
-          '${d.day.toString().padLeft(2, '0')}';
 
 class Trip {
   const Trip({
@@ -96,8 +91,8 @@ class Trip {
     'title': title,
     'description': description,
     'destinations': destinations,
-    'start_date': _dateOnly(startDate),
-    'end_date': _dateOnly(endDate),
+    'start_date': startDate == null ? null : Dates.iso(startDate!),
+    'end_date': endDate == null ? null : Dates.iso(endDate!),
     'travellers': travellers,
     'type': type.name,
     'cover_photo_url': coverPhotoUrl,

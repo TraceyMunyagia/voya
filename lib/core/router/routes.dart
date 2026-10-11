@@ -14,5 +14,8 @@ class Routes {
   static const profile = '/profile';
   static const editProfile = '/edit-profile';
   static const create = '/create';
+  static const tripEditPattern = '/trips/:id/edit';
+  static String tripEdit(String id) => '/trips/$id/edit';
   static const gallery = '/dev/gallery';
+  static const tripEditPath = '/trips/:id/edit';
 }

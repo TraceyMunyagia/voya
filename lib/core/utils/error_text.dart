@@ -24,15 +24,22 @@ String friendlyError(Object e) {
   if (e is PostgrestException) {
     if (e.code == '23505') return 'That is already taken.';
     if (e.code == '42501') return 'You do not have permission to do that.';
+    if (e.code == 'PGRST116')
+      return 'That could not be saved. It may have been changed or removed.';
     return e.message;
   }
   if (e is StorageException) return e.message;
+  if (e is AuthRetryableFetchException) return 'No internet connection.';
   if (e is SocketException) return 'No internet connection.';
   if (e is PlatformException) {
     if (e.code.contains('denied')) {
       return 'Voya does not have permission. Allow photo or camera access in Settings.';
     }
     return e.message ?? 'Could not open the photo picker.';
+  }
+  final raw = e.toString();
+  if (raw.contains('SocketException') || raw.contains('ClientException')) {
+    return 'No internet connection.';
   }
   return 'Something went wrong. Please try again.';
 }

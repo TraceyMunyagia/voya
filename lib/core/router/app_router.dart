@@ -15,6 +15,7 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/saved/presentation/saved_screen.dart';
+import '../../features/trips/presentation/trip_editor_screen.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/supabase_providers.dart';
 import '../auth/recovery_flag.dart';
@@ -121,6 +122,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CreateTripScreen(),
       ),
       GoRoute(
+        path: Routes.tripEditPattern,
+        builder: (context, state) =>
+            TripEditorScreen(tripId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: Routes.editProfile,
         builder: (context, state) => const EditProfileScreen(),
       ),
@@ -129,6 +135,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: Routes.gallery,
           builder: (context, state) => const ComponentGalleryScreen(),
         ),
+      GoRoute(
+        path: Routes.tripEditPath,
+        builder: (context, state) =>
+            TripEditorScreen(tripId: state.pathParameters['id']!),
+      ),
     ],
   );
 
