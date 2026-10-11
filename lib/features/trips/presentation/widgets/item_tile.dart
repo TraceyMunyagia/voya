@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/enum_labels.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/enums.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/cost_chip.dart';
+import '../../../../core/widgets/info_chip.dart';
+import '../../../../data/models/item_details.dart';
 import '../../../../data/models/itinerary_item.dart';
+import 'rating_field.dart';
 
 enum _ItemAction { edit, move, delete }
 
@@ -13,6 +15,8 @@ class ItemTile extends StatelessWidget {
   const ItemTile({
     super.key,
     required this.item,
+    required this.travellers,
+    this.onTap,
     this.onEdit,
     this.onMove,
     this.onDelete,
@@ -20,6 +24,8 @@ class ItemTile extends StatelessWidget {
   });
 
   final ItineraryItem item;
+  final int travellers;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onMove;
   final VoidCallback? onDelete;
@@ -29,33 +35,42 @@ class ItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final hasMenu = onEdit != null || onMove != null || onDelete != null;
+    final total = item.totalFor(travellers);
+    final isFree = item.cost.basis == CostBasis.free;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-      onTap: onEdit,
+      onTap: onTap,
       leading: CircleAvatar(
-        backgroundColor: Theme.of(context).brightness == Brightness.light
-            ? Colors.white
-            : AppColors.darkBackground,
-        child: Icon(
-          item.category.icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        backgroundColor: scheme.brightness == Brightness.light ? Colors.white : scheme.surface,
+        child: Icon(itemIcon(item), size: 20, color: scheme.primary),
       ),
       title: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-      subtitle: Wrap(
-        spacing: AppSpacing.sm,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(item.category.label),
-          if (item.cost.amount > 0 || item.cost.basis.name == 'free')
-            CostChip(
-              amount: item.cost.amount,
-              currency: item.cost.currency,
-              basis: item.cost.basis,
-            ),
+          Text(itemSubtitle(item), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (isFree)
+                const CostChip(amount: 0, basis: CostBasis.free)
+              else if (total > 0)
+                CostChip(amount: total, currency: item.cost.currency),
+              if (item.rating != null) RatingStars(item.rating!, size: 15),
+              if (item.photos.isNotEmpty)
+                InfoChip(icon: Icons.photo_outlined, label: '${item.photos.length}'),
+              if (item.location != null)
+                const Icon(Icons.place_outlined, size: 18),
+              if (item.links.isNotEmpty)
+                const Icon(Icons.link_rounded, size: 18),
+            ],
+          ),
         ],
       ),
       trailing: Row(
@@ -75,24 +90,14 @@ class ItemTile extends StatelessWidget {
                 }
               },
               itemBuilder: (context) => [
-                if (onEdit != null)
-                  const PopupMenuItem(
-                    value: _ItemAction.edit,
-                    child: Text('Edit'),
-                  ),
+                if (onEdit != null) const PopupMenuItem(value: _ItemAction.edit, child: Text('Edit')),
                 if (onMove != null)
-                  const PopupMenuItem(
-                    value: _ItemAction.move,
-                    child: Text('Move to another day'),
-                  ),
+                  const PopupMenuItem(value: _ItemAction.move, child: Text('Move to another day')),
                 if (onDelete != null)
-                  const PopupMenuItem(
-                    value: _ItemAction.delete,
-                    child: Text('Delete'),
-                  ),
+                  const PopupMenuItem(value: _ItemAction.delete, child: Text('Delete')),
               ],
             ),
-          if (dragHandle != null) dragHandle!,
+          ?dragHandle,
         ],
       ),
     );

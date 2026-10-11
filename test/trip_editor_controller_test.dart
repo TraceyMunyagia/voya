@@ -8,6 +8,8 @@ import 'package:voya/data/repositories/item_repository.dart';
 import 'package:voya/data/repositories/storage_repository.dart';
 import 'package:voya/data/repositories/trip_repository.dart';
 import 'package:voya/features/trips/application/trip_editor_controller.dart';
+import 'package:voya/data/models/item_input.dart';
+import 'package:voya/data/models/item_photo.dart';
 
 // Only the methods the controller calls are implemented; anything else fails loudly.
 class _FakeTrips implements TripRepository {
@@ -66,6 +68,7 @@ class _FakeDays implements DayRepository {
 
 class _FakeItems implements ItemRepository {
   bool failReorder = false;
+  ItemInput? lastSaved;
   List<ItineraryItem> items = [
     for (final id in ['a', 'b', 'c'])
       ItineraryItem(
@@ -75,6 +78,9 @@ class _FakeItems implements ItemRepository {
         category: ItemCategory.activity,
         title: id,
         sortOrder: 'abc'.indexOf(id),
+        photos: id == 'a'
+            ? const [ItemPhoto(url: 'u1'), ItemPhoto(url: 'u2')]
+            : const [],
       ),
   ];
 
@@ -94,8 +100,20 @@ class _FakeItems implements ItemRepository {
           category: ItemCategory.activity,
           title: orderedIds[i],
           sortOrder: i,
+          photos: items.firstWhere((x) => x.id == orderedIds[i]).photos,
         ),
     ];
+  }
+
+  @override
+  Future<String> save({
+    required String tripId,
+    required String dayId,
+    String? itemId,
+    required ItemInput input,
+  }) async {
+    lastSaved = input;
+    return itemId ?? 'new';
   }
 
   @override
@@ -107,6 +125,11 @@ class _FakeStorage implements StorageRepository {
 
   @override
   Future<void> deleteTripFolder(String tripId) async => folderDeletes++;
+
+  List<String> deletedUrls = [];
+
+  @override
+  Future<void> deleteTripPhotos(List<String> urls) async => deletedUrls = urls;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -190,5 +213,30 @@ void main() {
     expect(err, isNull);
     expect(storage.folderDeletes, 1);
     expect(trips.deleted, 1);
+  });
+
+  test('saveFullItem sends the input and deletes photos that were removed', () async {
+    const input = ItemInput(
+      category: ItemCategory.accommodation,
+      title: 'Hotel',
+      photos: [ItemPhoto(url: 'u2')], // u1 was taken off
+    );
+    final err = await c.saveFullItem(itemId: 'a', dayId: 'd1', input: input);
+
+    expect(err, isNull);
+    expect(items.lastSaved?.title, 'Hotel');
+    expect(storage.deletedUrls, ['u1']);
+  });
+
+  test('saveFullItem on a new item deletes nothing', () async {
+    const input = ItemInput(
+      category: ItemCategory.transport,
+      title: 'SGR',
+      photos: [ItemPhoto(url: 'new1')],
+    );
+    final err = await c.saveFullItem(dayId: 'd1', input: input);
+
+    expect(err, isNull);
+    expect(storage.deletedUrls, isEmpty);
   });
 }

@@ -23,6 +23,16 @@ import '../../../data/models/trip.dart';
 import '../../../data/models/trip_member.dart';
 import '../../trips/presentation/widgets/trip_card.dart';
 import '../../trips/presentation/widgets/trip_card_skeleton.dart';
+import '../../../core/utils/money.dart';
+import '../../../data/models/cost.dart';
+import '../../../data/models/item_link.dart';
+import '../../trips/presentation/widgets/cost_field.dart';
+import '../../trips/presentation/widgets/links_editor.dart';
+import '../../trips/presentation/widgets/rating_field.dart';
+import '../../../data/models/item_photo.dart';
+import '../../../data/models/place_ref.dart';
+import '../../trips/presentation/widgets/captioned_photos_editor.dart';
+import '../../trips/presentation/widgets/location_editor.dart';
 
 /// Debug-only test bench for the shared widgets.
 /// Reach it from Profile → ⋮ menu → Component gallery.
@@ -46,6 +56,17 @@ class _ComponentGalleryScreenState
   bool _liked = false;
   bool _saved = false;
   bool _following = false;
+  final _formAmount = TextEditingController(text: '1500');
+  CostBasis _formBasis = CostBasis.perPerson;
+  List<ItemLink> _formLinks = [];
+  int? _formRating;
+  PlaceRef? _formLocation;
+  List<ItemPhoto> _formPhotos = [];
+  @override
+  void dispose() {
+    _formAmount.dispose();
+    super.dispose();
+  }
 
   Trip _demoTrip({required int creators}) {
     const people = ['Tracey', 'Mary', 'Ann', 'Joy'];
@@ -176,6 +197,35 @@ class _ComponentGalleryScreenState
             ),
           ),
 
+          _Section(
+            'Form widgets: location and captioned photos',
+            _tripId == null
+                ? OutlinedButton(
+                    onPressed: () async {
+                      await _ensureTrip();
+                      if (mounted) setState(() {});
+                    },
+                    child: const Text('Create a test trip first'),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      LocationEditor(
+                        initial: null,
+                        onChanged: (p) => setState(() => _formLocation = p),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text('Maps link: ${_formLocation?.mapsLink ?? 'none'}'),
+                      const SizedBox(height: AppSpacing.lg),
+                      CaptionedPhotosEditor(
+                        tripId: _tripId!,
+                        photos: _formPhotos,
+                        onChanged: (p) => setState(() => _formPhotos = p),
+                      ),
+                    ],
+                  ),
+          ),
+
           // DAY17
           _Section(
             'Photo grid and viewer',
@@ -268,6 +318,45 @@ class _ComponentGalleryScreenState
                 ItemCategory.activity: 20000,
                 ItemCategory.other: 5000,
               },
+            ),
+          ),
+                    _Section(
+            'Form widgets: cost, links, rating (4 people, 3 nights)',
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CostField(
+                  amount: _formAmount,
+                  basis: _formBasis,
+                  allowedBases: const [
+                    CostBasis.perNight,
+                    CostBasis.perPerson,
+                    CostBasis.perGroup,
+                    CostBasis.oneTime,
+                    CostBasis.free,
+                  ],
+                  currency: 'KES',
+                  total: Cost(
+                    amount: Money.parse(_formAmount.text) ?? 0,
+                    basis: _formBasis,
+                  ).total(people: 4, nights: 3),
+                  perPerson: Cost(
+                    amount: Money.parse(_formAmount.text) ?? 0,
+                    basis: _formBasis,
+                  ).total(people: 4, nights: 3) / 4,
+                  onChanged: () => setState(() {}),
+                  onBasisChanged: (b) => setState(() => _formBasis = b),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                LinksEditor(
+                  links: _formLinks,
+                  onChanged: (l) => setState(() => _formLinks = l),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                RatingField(value: _formRating, onChanged: (r) => setState(() => _formRating = r)),
+                const SizedBox(height: AppSpacing.sm),
+                if (_formRating != null) RatingStars(_formRating!),
+              ],
             ),
           ),
           _Section(
@@ -369,6 +458,7 @@ class _Swatches extends StatelessWidget {
               Text(e.key, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
+          
       ],
     );
   }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/money.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../data/models/itinerary_item.dart';
 import '../../../../data/models/trip_day.dart';
 import 'item_tile.dart';
 
-/// One day of the trip: title, story, photos and its items.
+/// One day of the trip: title, story, photos, its items and a cost subtotal.
 /// Every callback left null switches that feature off, so the same card
 /// works read-only.
 class DayCard extends StatelessWidget {
@@ -15,9 +16,11 @@ class DayCard extends StatelessWidget {
     required this.day,
     required this.items,
     required this.editable,
+    required this.travellers,
     required this.onEditDay,
     this.onAddItem,
     this.onEditItem,
+    this.onViewItem,
     this.onMoveItem,
     this.onDeleteItem,
     this.onReorderItems,
@@ -26,29 +29,36 @@ class DayCard extends StatelessWidget {
   final TripDay day;
   final List<ItineraryItem> items;
   final bool editable;
+  final int travellers;
   final VoidCallback onEditDay;
   final VoidCallback? onAddItem;
   final ValueChanged<ItineraryItem>? onEditItem;
+  final ValueChanged<ItineraryItem>? onViewItem;
   final ValueChanged<ItineraryItem>? onMoveItem;
   final ValueChanged<ItineraryItem>? onDeleteItem;
   final void Function(int oldIndex, int newIndex)? onReorderItems;
 
-  ItemTile _tile(ItineraryItem item, {Widget? handle}) => ItemTile(
-    key: ValueKey(item.id),
-    item: item,
-    onEdit: onEditItem == null ? null : () => onEditItem!(item),
-    onMove: onMoveItem == null ? null : () => onMoveItem!(item),
-    onDelete: onDeleteItem == null ? null : () => onDeleteItem!(item),
-    dragHandle: handle,
-  );
+  ItemTile _tile(ItineraryItem item, {Widget? handle}) {
+    final tap = editable ? onEditItem : onViewItem;
+    return ItemTile(
+      key: ValueKey(item.id),
+      item: item,
+      travellers: travellers,
+      onTap: tap == null ? null : () => tap(item),
+      onEdit: onEditItem == null ? null : () => onEditItem!(item),
+      onMove: onMoveItem == null ? null : () => onMoveItem!(item),
+      onDelete: onDeleteItem == null ? null : () => onDeleteItem!(item),
+      dragHandle: handle,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    final heading = day.title.isEmpty
-        ? 'Day ${day.dayNumber}'
-        : 'Day ${day.dayNumber} — ${day.title}';
+    final heading =
+        day.title.isEmpty ? 'Day ${day.dayNumber}' : 'Day ${day.dayNumber} — ${day.title}';
+    final subtotal = items.fold<double>(0, (sum, i) => sum + i.totalFor(travellers));
 
     final Widget list;
     if (items.isEmpty) {
@@ -93,11 +103,20 @@ class DayCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     heading,
-                    style: text.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
+                if (subtotal > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: AppSpacing.sm),
+                    child: Text(
+                      Money.format(subtotal),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 if (editable)
                   IconButton(
                     tooltip: 'Edit day',
@@ -116,8 +135,7 @@ class DayCard extends StatelessWidget {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: day.photoUrls.length,
-                  separatorBuilder: (context, i) =>
-                      const SizedBox(width: AppSpacing.sm),
+                  separatorBuilder: (context, i) => const SizedBox(width: AppSpacing.sm),
                   itemBuilder: (context, i) => AspectRatio(
                     aspectRatio: 1,
                     child: AppNetworkImage(

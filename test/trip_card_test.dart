@@ -79,9 +79,12 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const ValueKey('like')));
-    await tester.tap(find.byKey(const ValueKey('save')));
-    await tester.tap(find.byKey(const ValueKey('share')));
+    // the card is taller than the 800x600 test screen, so scroll the actions in
+    for (final key in ['like', 'save', 'share']) {
+      final button = find.byKey(ValueKey(key));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+    }
 
     expect([liked, saved, shared], [1, 1, 1]);
   });

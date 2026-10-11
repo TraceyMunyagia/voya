@@ -24,20 +24,34 @@ Future<ItemDraft?> showItemSheet(
   BuildContext context, {
   ItineraryItem? existing,
   required String currency,
+  ItemCategory? initialCategory,
+  List<ItemCategory>? categories,
 }) {
   return showModalBottomSheet<ItemDraft>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (context) => _ItemSheet(existing: existing, currency: currency),
+    builder: (context) => _ItemSheet(
+      existing: existing,
+      currency: currency,
+      initialCategory: initialCategory,
+      categories: categories,
+    ),
   );
 }
 
 class _ItemSheet extends StatefulWidget {
-  const _ItemSheet({required this.existing, required this.currency});
+  const _ItemSheet({
+    required this.existing,
+    required this.currency,
+    this.initialCategory,
+    this.categories,
+  });
 
   final ItineraryItem? existing;
   final String currency;
+  final ItemCategory? initialCategory;
+  final List<ItemCategory>? categories;
 
   @override
   State<_ItemSheet> createState() => _ItemSheetState();
@@ -46,7 +60,7 @@ class _ItemSheet extends StatefulWidget {
 class _ItemSheetState extends State<_ItemSheet> {
   final _formKey = GlobalKey<FormState>();
   late ItemCategory _category =
-      widget.existing?.category ?? ItemCategory.activity;
+      widget.existing?.category ?? widget.initialCategory ?? ItemCategory.activity;
   late final _title = TextEditingController(text: widget.existing?.title ?? '');
   late final _amount = TextEditingController(text: _initialAmount());
 
@@ -114,7 +128,7 @@ class _ItemSheetState extends State<_ItemSheet> {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
-                  for (final c in ItemCategory.values)
+                  for (final c in widget.categories ?? ItemCategory.values)
                     ChoiceChip(
                       showCheckmark: false,
                       selected: c == _category,

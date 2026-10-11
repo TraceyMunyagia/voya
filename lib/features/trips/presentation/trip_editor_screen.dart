@@ -18,11 +18,12 @@ import 'widgets/trip_status_chip.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../data/models/itinerary_item.dart';
 import 'widgets/day_picker_dialog.dart';
-import 'widgets/item_sheet.dart';
 import 'reorder_days_screen.dart';
 import 'trip_details_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/enums.dart';
+import 'widgets/item_details_view.dart';
+import 'widgets/item_flow.dart';
 
 enum _EditorMenu { details, reorder, delete }
 
@@ -55,8 +56,9 @@ class _TripEditorScreenState extends ConsumerState<TripEditorScreen> {
   @override
   void dispose() {
     // refresh "My trips" after the tree has finished closing this screen
-    if (_c.dirty)
+    if (_c.dirty) {
       Future.microtask(() => _container.invalidate(myTripsProvider));
+    }
     _c.dispose();
     super.dispose();
   }
@@ -112,35 +114,15 @@ class _TripEditorScreenState extends ConsumerState<TripEditorScreen> {
   }
   // ACTIONS
 
-  Future<void> _addItem(TripDay day) async {
-    final draft = await showItemSheet(context, currency: _c.trip!.currency);
-    if (draft == null) return;
-    _toast(
-      await _c.addItem(
-        dayId: day.id,
-        category: draft.category,
-        title: draft.title,
-        amount: draft.amount,
-      ),
-    );
+  Future<void> _addItem(TripDay day) => openItemForm(context, controller: _c, day: day);
+
+  Future<void> _editItem(ItineraryItem item) {
+    final day = _c.days.firstWhere((d) => d.id == item.dayId);
+    return openItemForm(context, controller: _c, day: day, existing: item);
   }
 
-  Future<void> _editItem(ItineraryItem item) async {
-    final draft = await showItemSheet(
-      context,
-      existing: item,
-      currency: _c.trip!.currency,
-    );
-    if (draft == null) return;
-    _toast(
-      await _c.saveItem(
-        item.id,
-        category: draft.category,
-        title: draft.title,
-        amount: draft.amount,
-      ),
-    );
-  }
+  void _viewItem(ItineraryItem item) =>
+      showItemDetails(context, item, travellers: _c.trip!.travellers);
 
   Future<void> _deleteItem(ItineraryItem item) async {
     final ok = await confirmDialog(
@@ -319,6 +301,8 @@ class _TripEditorScreenState extends ConsumerState<TripEditorScreen> {
                       key: ValueKey(day.id),
                       day: day,
                       items: _c.itemsByDay[day.id] ?? const [],
+                      travellers: trip.travellers,
+                      onViewItem: _viewItem,
                       editable: _c.editable,
                       onEditDay: () => _editDay(day),
                       // ITEM HANDLERS

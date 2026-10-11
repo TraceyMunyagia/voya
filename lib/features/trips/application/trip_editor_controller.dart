@@ -11,20 +11,18 @@ import '../../../data/repositories/day_repository.dart';
 import '../../../data/repositories/item_repository.dart';
 import '../../../data/repositories/storage_repository.dart';
 import '../../../data/repositories/trip_repository.dart';
+import '../../../data/models/item_input.dart';
 
 /// State and actions for the trip editor. Every action returns an error
 /// message (null on success) that the screen shows in a snackbar.
 class TripEditorController extends ChangeNotifier {
   TripEditorController({
     required this.tripId,
-    required TripRepository trips,
+    required this._trips,
     required DayRepository days,
-    required ItemRepository items,
-    required StorageRepository storage,
-  }) : _trips = trips,
-       _days = days,
-       _items = items,
-       _storage = storage;
+    required this._items,
+    required this._storage,
+  }) : _days = days;
 
   final String tripId;
   final TripRepository _trips;
@@ -164,7 +162,36 @@ class TripEditorController extends ChangeNotifier {
     () => _days.update(dayId, title: title, story: story, photoUrls: photoUrls),
   );
 
-  Future<String?> deleteDay(String dayId) => _run(() => _days.delete(dayId));
+  Future<String?> deleteDay(String dayId) async {
+    final day = days.where((d) => d.id == dayId).firstOrNull;
+    final urls = <String>[
+      ...?day?.photoUrls,
+      for (final i in itemsByDay[dayId] ?? const <ItineraryItem>[]) ...i.photos.map((p) => p.url),
+    ];
+
+    final err = await _run(() => _days.delete(dayId));
+    if (err == null) await _deleteFiles(urls);
+    return err;
+  }
+
+  Future<String?> deleteItem(String itemId) async {
+    final urls = <String>[
+      for (final i in itemsByDay.values.expand((l) => l))
+        if (i.id == itemId) ...i.photos.map((p) => p.url),
+    ];
+
+    final err = await _run(() => _items.delete(itemId));
+    if (err == null) await _deleteFiles(urls);
+    return err;
+  }
+
+  /// Best effort: a leftover file is harmless, a failed delete must not show as an error.
+  Future<void> _deleteFiles(List<String> urls) async {
+    if (urls.isEmpty) return;
+    try {
+      await _storage.deleteTripPhotos(urls);
+    } catch (_) {}
+  }
 
   Future<String?> reorderDays(List<String> orderedIds) =>
       _run(() => _days.reorder(tripId, orderedIds));
@@ -197,8 +224,29 @@ class TripEditorController extends ChangeNotifier {
         _items.update(itemId, category: category, title: title, amount: amount),
   );
 
-  Future<String?> deleteItem(String itemId) =>
-      _run(() => _items.delete(itemId));
+  /// Full save used by the accommodation / transport forms (and meals and
+  /// activities from Week 6). Photos removed from the item are deleted from
+  /// storage once the save succeeded.
+  Future<String?> saveFullItem({
+    String? itemId,
+    required String dayId,
+    required ItemInput input,
+  }) async {
+    final before = <String>{
+      for (final i in itemsByDay.values.expand((l) => l))
+        if (i.id == itemId) ...i.photos.map((p) => p.url),
+    };
+
+    final err = await _run(
+      () => _items.save(tripId: tripId, dayId: dayId, itemId: itemId, input: input),
+    );
+
+    if (err == null) {
+      final removed = before.difference(input.photos.map((p) => p.url).toSet()).toList();
+      await _deleteFiles(removed);
+    }
+    return err;
+  }
 
   /// Updates the screen immediately, then saves; a failure reloads the old order.
   Future<String?> reorderItems(String dayId, int oldIndex, int newIndex) {

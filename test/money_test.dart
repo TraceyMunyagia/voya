@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voya/core/media/image_urls.dart';
+import 'package:voya/core/utils/money.dart';
 
 void main() {
   const base =
@@ -44,6 +45,24 @@ void main() {
 
     test('the thumb of a bucket path is its _thumb sibling', () {
       expect(ImageUrls.thumb('t1/abc.jpg'), 't1/abc_thumb.jpg');
+    });
+  });
+
+  group('Money', () {
+    test('parse accepts separators and rejects bad input', () {
+      expect(Money.parse('1,500'), 1500);
+      expect(Money.parse('1 500.5'), 1500.5);
+      expect(Money.parse(' 0 '), 0);
+      expect(Money.parse(''), isNull);
+      expect(Money.parse('abc'), isNull);
+      expect(Money.parse('-1'), isNull);
+      expect(Money.parse('1e12'), isNull);
+    });
+
+    test('toInput turns a number back into editable text', () {
+      expect(Money.toInput(0), '');
+      expect(Money.toInput(1500), '1500');
+      expect(Money.toInput(1234.5), '1234.5');
     });
   });
 }

@@ -46,7 +46,7 @@ void main() {
     await tester.pump();
     expect(find.widgetWithText(InputChip, 'Diani'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.cancel)); // InputChip delete icon
+    await tester.tap(find.byTooltip('Delete')); // InputChip delete button
     await tester.pump();
     expect(find.widgetWithText(InputChip, 'Diani'), findsNothing);
   });

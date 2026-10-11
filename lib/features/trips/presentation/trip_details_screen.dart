@@ -15,6 +15,7 @@ import 'widgets/destinations_field.dart';
 import 'widgets/travellers_stepper.dart';
 import 'widgets/trip_type_picker.dart';
 
+
 /// Edits everything about the trip itself: name, story, cover, destinations,
 /// type, travellers and dates.
 class TripDetailsScreen extends StatefulWidget {

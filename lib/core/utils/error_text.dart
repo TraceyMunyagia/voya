@@ -24,8 +24,9 @@ String friendlyError(Object e) {
   if (e is PostgrestException) {
     if (e.code == '23505') return 'That is already taken.';
     if (e.code == '42501') return 'You do not have permission to do that.';
-    if (e.code == 'PGRST116')
+    if (e.code == 'PGRST116') {
       return 'That could not be saved. It may have been changed or removed.';
+    }
     return e.message;
   }
   if (e is StorageException) return e.message;
