@@ -11,6 +11,7 @@ import '../../../data/repositories/day_repository.dart';
 import '../../../data/repositories/item_repository.dart';
 import '../../../data/repositories/storage_repository.dart';
 import '../../../data/repositories/trip_repository.dart';
+import '../../../data/models/item_details.dart';
 import '../../../data/models/item_input.dart';
 
 /// State and actions for the trip editor. Every action returns an error
@@ -19,10 +20,10 @@ class TripEditorController extends ChangeNotifier {
   TripEditorController({
     required this.tripId,
     required this._trips,
-    required DayRepository days,
+    required this._days,
     required this._items,
     required this._storage,
-  }) : _days = days;
+  });
 
   final String tripId;
   final TripRepository _trips;
@@ -33,6 +34,27 @@ class TripEditorController extends ChangeNotifier {
   Trip? trip;
   List<TripDay> days = const [];
   Map<String, List<ItineraryItem>> itemsByDay = const {};
+
+  /// Accommodation and transport to the destination (items without a day).
+  List<ItineraryItem> tripItems = const [];
+
+  /// Where you stayed, in the order added.
+  List<ItineraryItem> get stays =>
+      tripItems.where((i) => i.category == ItemCategory.accommodation).toList();
+
+  /// Getting there: going there first, other legs, coming back last.
+  List<ItineraryItem> get legs {
+    final list = tripItems.where((i) => i.category == ItemCategory.transport).toList();
+    int rank(ItineraryItem i) => TransportDetails.fromJson(i.details).leg.index;
+    list.sort((a, b) {
+      final c = rank(a).compareTo(rank(b));
+      return c != 0 ? c : a.sortOrder.compareTo(b.sortOrder);
+    });
+    return list;
+  }
+
+  Iterable<ItineraryItem> get _allItems =>
+      [...tripItems, ...itemsByDay.values.expand((l) => l)];
   bool loading = true;
   String? loadError;
 
@@ -74,11 +96,15 @@ class TripEditorController extends ChangeNotifier {
       trip = loaded[0] as Trip;
       days = loaded[1] as List<TripDay>;
 
+      final all = loaded[2] as List<ItineraryItem>;
+      tripItems = all.where((i) => i.dayId == null).toList();
+
       final grouped = <String, List<ItineraryItem>>{
         for (final d in days) d.id: <ItineraryItem>[],
       };
-      for (final item in loaded[2] as List<ItineraryItem>) {
-        grouped.putIfAbsent(item.dayId, () => []).add(item);
+      for (final item in all) {
+        final dayId = item.dayId;
+        if (dayId != null) grouped.putIfAbsent(dayId, () => []).add(item);
       }
       itemsByDay = grouped;
       loadError = null;
@@ -176,7 +202,7 @@ class TripEditorController extends ChangeNotifier {
 
   Future<String?> deleteItem(String itemId) async {
     final urls = <String>[
-      for (final i in itemsByDay.values.expand((l) => l))
+      for (final i in _allItems)
         if (i.id == itemId) ...i.photos.map((p) => p.url),
     ];
 
@@ -224,16 +250,16 @@ class TripEditorController extends ChangeNotifier {
         _items.update(itemId, category: category, title: title, amount: amount),
   );
 
-  /// Full save used by the accommodation / transport forms (and meals and
-  /// activities from Week 6). Photos removed from the item are deleted from
-  /// storage once the save succeeded.
+  /// Full save used by every item form. [dayId] is null for accommodation and
+  /// transport to the destination. Photos removed from the item are deleted
+  /// from storage once the save succeeded.
   Future<String?> saveFullItem({
     String? itemId,
-    required String dayId,
+    String? dayId,
     required ItemInput input,
   }) async {
     final before = <String>{
-      for (final i in itemsByDay.values.expand((l) => l))
+      for (final i in _allItems)
         if (i.id == itemId) ...i.photos.map((p) => p.url),
     };
 
@@ -246,6 +272,16 @@ class TripEditorController extends ChangeNotifier {
       await _deleteFiles(removed);
     }
     return err;
+  }
+
+  /// The ride used by the latest item of this day that recorded one, so the
+  /// next meal or activity can default to it.
+  String? lastTravelMode(String dayId) {
+    final list = itemsByDay[dayId] ?? const <ItineraryItem>[];
+    for (final item in list.reversed) {
+      if (item.travelMode != null) return item.travelMode;
+    }
+    return null;
   }
 
   /// Updates the screen immediately, then saves; a failure reloads the old order.

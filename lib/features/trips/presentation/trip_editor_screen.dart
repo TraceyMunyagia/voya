@@ -20,6 +20,7 @@ import '../../../data/models/itinerary_item.dart';
 import 'widgets/day_picker_dialog.dart';
 import 'reorder_days_screen.dart';
 import 'trip_details_screen.dart';
+import 'widgets/logistics_summary_card.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/enums.dart';
 import 'widgets/item_details_view.dart';
@@ -78,12 +79,9 @@ class _TripEditorScreenState extends ConsumerState<TripEditorScreen> {
 
   // ACTIONS
   void _openDetails() {
-    final trip = _c.trip;
-    if (trip == null) return;
+    if (_c.trip == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => TripDetailsScreen(controller: _c, trip: trip),
-      ),
+      MaterialPageRoute<void>(builder: (context) => TripDetailsScreen(controller: _c)),
     );
   }
 
@@ -140,7 +138,7 @@ class _TripEditorScreenState extends ConsumerState<TripEditorScreen> {
     final target = await showDayPicker(
       context,
       days: _c.days,
-      excludeDayId: item.dayId,
+      excludeDayId: item.dayId!, // only items in a day can be moved
     );
     if (target == null) return;
     _toast(await _c.moveItem(item.id, target));
@@ -240,8 +238,10 @@ class _TripEditorScreenState extends ConsumerState<TripEditorScreen> {
               children: [
                 _TripHeader(
                   trip: trip,
-                  onTap: _c.editable ? _openDetails : null,
+                  onTap: _openDetails,
                 ),
+                const SizedBox(height: AppSpacing.md),
+                LogisticsSummaryCard(controller: _c, onTap: _openDetails),
                 const SizedBox(height: AppSpacing.md),
                 if (_c.editable && _c.missingDays > 0) ...[
                   Card(

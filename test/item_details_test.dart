@@ -68,16 +68,23 @@ void main() {
       );
     });
 
-    test('transport shows mode and provider', () {
+    test('transport shows journey, mode and provider', () {
       expect(
         itemSubtitle(_item(ItemCategory.transport, {'mode': 'sgr', 'provider': 'Madaraka Express'})),
-        'SGR · Madaraka Express',
+        'Going there · SGR · Madaraka Express',
       );
-      expect(itemSubtitle(_item(ItemCategory.transport, {'mode': 'walking'})), 'Walking');
+      expect(
+        itemSubtitle(_item(ItemCategory.transport, {'leg': 'return', 'mode': 'walking'})),
+        'Coming back · Walking',
+      );
     });
 
-    test('other categories show the category name', () {
-      expect(itemSubtitle(_item(ItemCategory.activity, {})), 'Activities');
+    test('activities show their activity type', () {
+      expect(itemSubtitle(_item(ItemCategory.activity, {})), 'Something else');
+      expect(
+        itemSubtitle(_item(ItemCategory.activity, {'activity_type': 'boat_ride'})),
+        'Boat ride',
+      );
     });
   });
 }

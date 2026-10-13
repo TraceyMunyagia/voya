@@ -108,7 +108,7 @@ class _FakeItems implements ItemRepository {
   @override
   Future<String> save({
     required String tripId,
-    required String dayId,
+    String? dayId,
     String? itemId,
     required ItemInput input,
   }) async {
@@ -238,5 +238,36 @@ void main() {
 
     expect(err, isNull);
     expect(storage.deletedUrls, isEmpty);
+  });
+
+  test('accommodation and transport load as trip items, not into days', () async {
+    items.items = [
+      ...items.items,
+      ItineraryItem(
+        id: 'stay',
+        tripId: 't1',
+        category: ItemCategory.accommodation,
+        title: 'Diani Airbnb',
+      ),
+      ItineraryItem(
+        id: 'home',
+        tripId: 't1',
+        category: ItemCategory.transport,
+        title: 'Mombasa → Nairobi',
+        details: const {'leg': 'return'},
+      ),
+      ItineraryItem(
+        id: 'there',
+        tripId: 't1',
+        category: ItemCategory.transport,
+        title: 'Nairobi → Mombasa',
+        details: const {'leg': 'outbound'},
+      ),
+    ];
+    await c.load();
+
+    expect(order('d1'), ['a', 'b', 'c']);
+    expect(c.stays.map((i) => i.id), ['stay']);
+    expect(c.legs.map((i) => i.id), ['there', 'home']); // going there first
   });
 }

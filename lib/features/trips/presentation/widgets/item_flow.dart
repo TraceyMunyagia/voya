@@ -5,19 +5,20 @@ import '../../../../core/constants/enums.dart';
 import '../../../../data/models/itinerary_item.dart';
 import '../../../../data/models/trip_day.dart';
 import '../../application/trip_editor_controller.dart';
-import '../accommodation_form_screen.dart';
-import '../transport_form_screen.dart';
+import '../activity_form_screen.dart';
+import '../meal_form_screen.dart';
+import '../other_form_screen.dart';
 import 'item_sheet.dart';
 
+const _dayCategories = [ItemCategory.meal, ItemCategory.activity, ItemCategory.other];
+
 const _categoryHints = {
-  ItemCategory.accommodation: 'Hotel, Airbnb, campsite, family...',
-  ItemCategory.transport: 'SGR, matatu, flight, boda...',
-  ItemCategory.meal: 'Restaurant, street food, cooked at home...',
+  ItemCategory.meal: 'Restaurant, street food, cooked at home, private chef...',
   ItemCategory.activity: 'Safari, beach, museum, nightlife...',
-  ItemCategory.other: 'Shopping, tips, anything else',
+  ItemCategory.other: 'Shopping, fees, insurance, tips',
 };
 
-/// "What are you adding?" Returns null if dismissed.
+/// "What are you adding to this day?" Returns null if dismissed.
 Future<ItemCategory?> showCategoryPicker(BuildContext context) {
   return showModalBottomSheet<ItemCategory>(
     context: context,
@@ -26,7 +27,7 @@ Future<ItemCategory?> showCategoryPicker(BuildContext context) {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final c in ItemCategory.values)
+          for (final c in _dayCategories)
             ListTile(
               leading: Icon(c.icon),
               title: Text(c.label),
@@ -39,8 +40,7 @@ Future<ItemCategory?> showCategoryPicker(BuildContext context) {
   );
 }
 
-/// Adds (existing == null) or edits an item, opening the right form for its
-/// category. Meals and activities keep the quick sheet until Week 6.
+/// Adds (existing == null) or edits a day item.
 Future<void> openItemForm(
   BuildContext context, {
   required TripEditorController controller,
@@ -48,23 +48,30 @@ Future<void> openItemForm(
   ItineraryItem? existing,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
-  final navigator = Navigator.of(context);
 
   final category = existing?.category ?? await showCategoryPicker(context);
   if (category == null || !context.mounted) return;
 
-  if (category == ItemCategory.accommodation) {
-    await navigator.push(MaterialPageRoute<void>(
+  if (category == ItemCategory.meal) {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (context) =>
-          AccommodationFormScreen(controller: controller, dayId: day.id, existing: existing),
+          MealFormScreen(controller: controller, dayId: day.id, existing: existing),
     ));
     return;
   }
 
-  if (category == ItemCategory.transport) {
-    await navigator.push(MaterialPageRoute<void>(
+  if (category == ItemCategory.activity) {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (context) =>
-          TransportFormScreen(controller: controller, dayId: day.id, existing: existing),
+          ActivityFormScreen(controller: controller, dayId: day.id, existing: existing),
+    ));
+    return;
+  }
+
+  if (category == ItemCategory.other) {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (context) =>
+          OtherFormScreen(controller: controller, dayId: day.id, existing: existing),
     ));
     return;
   }
@@ -74,7 +81,7 @@ Future<void> openItemForm(
     existing: existing,
     currency: controller.trip!.currency,
     initialCategory: category,
-    categories: const [ItemCategory.meal, ItemCategory.activity, ItemCategory.other],
+    categories: _dayCategories,
   );
   if (draft == null) return;
 

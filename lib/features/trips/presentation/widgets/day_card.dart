@@ -58,7 +58,7 @@ class DayCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final heading =
         day.title.isEmpty ? 'Day ${day.dayNumber}' : 'Day ${day.dayNumber} — ${day.title}';
-    final subtotal = items.fold<double>(0, (sum, i) => sum + i.totalFor(travellers));
+    final subtotal = items.fold<double>(0, (sum, i) => sum + i.grandTotalFor(travellers));
 
     final Widget list;
     if (items.isEmpty) {

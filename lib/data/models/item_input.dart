@@ -17,6 +17,10 @@ class ItemInput {
     this.rating,
     this.details = const {},
     this.photos = const [],
+    this.travelMode,
+    this.travelAmount = 0,
+    this.travelBasis = CostBasis.perVehicle,
+    this.travelNote = '',
   });
 
   final ItemCategory category;
@@ -30,6 +34,12 @@ class ItemInput {
   final Map<String, dynamic> details;
   final List<ItemPhoto> photos;
 
+  /// How you got to this item: a TransportMode.db value, or null.
+  final String? travelMode;
+  final double travelAmount;
+  final CostBasis travelBasis;
+  final String travelNote;
+
   Map<String, dynamic> toFields() => {
         'category': category.name,
         'title': title,
@@ -40,6 +50,10 @@ class ItemInput {
         'notes': notes,
         'rating': rating,
         'details': details,
+        'travel_mode': travelMode,
+        'travel_cost_amount': travelMode == null ? 0 : travelAmount,
+        'travel_cost_basis': travelBasis.db,
+        'travel_note': travelMode == null ? '' : travelNote,
       };
 
   List<Map<String, dynamic>> toPhotos() => photos.map((p) => p.toJson()).toList();

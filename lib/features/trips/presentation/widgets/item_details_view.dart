@@ -66,8 +66,10 @@ class ItemDetailsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    final total = item.totalFor(travellers);
     final people = item.people ?? travellers;
+    // the ride has its own row below, so this is the item on its own
+    final total = item.totalFor(travellers);
+    final travelTotal = item.travelTotalFor(travellers);
     final costLine = _costLine();
     final location = item.location;
     final mapsLink = location?.mapsLink;
@@ -123,6 +125,20 @@ class ItemDetailsView extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ],
+        if (item.travel case final mode?) ...[
+          const SizedBox(height: AppSpacing.sm),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(mode.icon),
+            title: const Text('How they got there'),
+            subtitle: Text(
+              [mode.label, if (item.travelNote.isNotEmpty) item.travelNote].join(' · '),
+            ),
+            trailing: travelTotal > 0
+                ? Text(Money.format(travelTotal, currency: item.travelCost.currency))
+                : null,
           ),
         ],
         if (item.description.isNotEmpty) ...[

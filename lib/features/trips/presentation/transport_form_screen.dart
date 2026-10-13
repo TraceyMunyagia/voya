@@ -22,17 +22,13 @@ import 'widgets/item_form_shell.dart';
 import 'widgets/links_editor.dart';
 import 'widgets/location_editor.dart';
 
-/// One leg of the journey: SGR, matatu, flight, boda, ferry, walking...
+/// A journey to (or from) the destination: SGR, flight, bus, your own car...
+/// Added on the trip details. Local rides to meals and activities are chosen
+/// on those items instead.
 class TransportFormScreen extends StatefulWidget {
-  const TransportFormScreen({
-    super.key,
-    required this.controller,
-    required this.dayId,
-    this.existing,
-  });
+  const TransportFormScreen({super.key, required this.controller, this.existing});
 
   final TripEditorController controller;
-  final String dayId;
   final ItineraryItem? existing;
 
   @override
@@ -52,9 +48,11 @@ class _TransportFormScreenState extends State<TransportFormScreen> {
   Trip get _trip => widget.controller.trip!;
   ItineraryItem? get _existing => widget.existing;
 
+  late TransportLeg _leg;
   late TransportMode _mode;
   late int _people;
   late CostBasis _basis;
+  late final bool _prefilled;
   late final TextEditingController _provider;
   late final TextEditingController _from;
   late final TextEditingController _to;
@@ -68,11 +66,30 @@ class _TransportFormScreenState extends State<TransportFormScreen> {
   void initState() {
     super.initState();
     final e = _existing;
-    final d = e == null ? const TransportDetails() : TransportDetails.fromJson(e.details);
 
+    // A new journey after an outbound one is most likely the way back, so it
+    // starts as the outbound reversed.
+    final outbound = widget.controller.legs
+        .where((l) =>
+            l.id != e?.id && TransportDetails.fromJson(l.details).leg == TransportLeg.outbound)
+        .firstOrNull;
+    final base = outbound == null ? null : TransportDetails.fromJson(outbound.details);
+
+    final d = e != null
+        ? TransportDetails.fromJson(e.details)
+        : TransportDetails(
+            leg: outbound == null ? TransportLeg.outbound : TransportLeg.returning,
+            mode: base?.mode ?? TransportMode.sgr,
+            provider: base?.provider ?? '',
+            from: base?.to ?? '',
+            to: base?.from ?? '',
+          );
+
+    _prefilled = e == null && outbound != null;
+    _leg = d.leg;
     _mode = d.mode;
     _people = e?.people ?? _trip.travellers;
-    _basis = e?.cost.basis ?? CostBasis.perPerson;
+    _basis = e?.cost.basis ?? outbound?.cost.basis ?? CostBasis.perPerson;
     _provider = TextEditingController(text: d.provider);
     _from = TextEditingController(text: d.from);
     _to = TextEditingController(text: d.to);
@@ -102,8 +119,7 @@ class _TransportFormScreenState extends State<TransportFormScreen> {
   double get _total => _cost.total(people: _people);
   double get _perPerson => _people > 0 ? _total / _people : 0;
 
-  String get _title =>
-      TransportDetails.autoTitle(_mode, _from.text.trim(), _to.text.trim());
+  String get _title => TransportDetails.autoTitle(_mode, _from.text.trim(), _to.text.trim());
 
   Future<String?> _save() {
     final input = ItemInput(
@@ -114,6 +130,7 @@ class _TransportFormScreenState extends State<TransportFormScreen> {
       links: _links,
       notes: _notes.text.trim(),
       details: TransportDetails(
+        leg: _leg,
         mode: _mode,
         provider: _provider.text.trim(),
         from: _from.text.trim(),
@@ -122,11 +139,7 @@ class _TransportFormScreenState extends State<TransportFormScreen> {
       ).toJson(),
       photos: _photos,
     );
-    return widget.controller.saveFullItem(
-      itemId: _existing?.id,
-      dayId: widget.dayId,
-      input: input,
-    );
+    return widget.controller.saveFullItem(itemId: _existing?.id, input: input);
   }
 
   @override
@@ -141,6 +154,22 @@ class _TransportFormScreenState extends State<TransportFormScreen> {
       onDelete: _existing == null ? null : () => widget.controller.deleteItem(_existing!.id),
       deleteMessage: 'This journey and its photos will be deleted. This cannot be undone.',
       children: [
+        FormSection(
+          title: 'Which journey?',
+          hint: _prefilled
+              ? 'Filled in from your journey there, with the route reversed. '
+                  'Change anything that was different.'
+              : 'Add the journey there, the way back, or any other leg to your destination.',
+          children: [
+            ChoiceWrap<TransportLeg>(
+              values: TransportLeg.values,
+              selected: _leg,
+              label: (l) => l.label,
+              icon: (l) => l.icon,
+              onSelected: (l) => setState(() => _leg = l),
+            ),
+          ],
+        ),
         FormSection(
           title: 'How did you travel?',
           children: [
@@ -192,7 +221,7 @@ class _TransportFormScreenState extends State<TransportFormScreen> {
         ),
         FormSection(
           title: 'People and cost',
-          hint: 'Per person suits tickets. Per vehicle suits a taxi, a hired car or fuel.',
+          hint: 'Per person suits tickets. Per vehicle suits a hired car or fuel.',
           children: [
             CountStepper(
               label: 'People',

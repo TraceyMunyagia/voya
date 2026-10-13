@@ -29,12 +29,10 @@ class AccommodationFormScreen extends StatefulWidget {
   const AccommodationFormScreen({
     super.key,
     required this.controller,
-    required this.dayId,
     this.existing,
   });
 
   final TripEditorController controller;
-  final String dayId;
   final ItineraryItem? existing;
 
   @override
@@ -126,7 +124,6 @@ class _AccommodationFormScreenState extends State<AccommodationFormScreen> {
     );
     return widget.controller.saveFullItem(
       itemId: _existing?.id,
-      dayId: widget.dayId,
       input: input,
     );
   }
@@ -171,6 +168,7 @@ class _AccommodationFormScreenState extends State<AccommodationFormScreen> {
         ),
         FormSection(
           title: 'Nights and guests',
+          hint: 'Stays belong to the whole trip, not to one day.',
           children: [
             CountStepper(
               label: 'Nights',

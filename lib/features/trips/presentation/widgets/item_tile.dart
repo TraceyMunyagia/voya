@@ -37,7 +37,7 @@ class ItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final hasMenu = onEdit != null || onMove != null || onDelete != null;
-    final total = item.totalFor(travellers);
+    final total = item.grandTotalFor(travellers);
     final isFree = item.cost.basis == CostBasis.free;
 
     return ListTile(
@@ -52,6 +52,20 @@ class ItemTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(itemSubtitle(item), maxLines: 1, overflow: TextOverflow.ellipsis),
+          if (item.travel case final mode?)
+            Row(
+              children: [
+                Icon(mode.icon, size: 16),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    [mode.label, if (item.travelNote.isNotEmpty) item.travelNote].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: AppSpacing.xs),
           Wrap(
             spacing: AppSpacing.sm,

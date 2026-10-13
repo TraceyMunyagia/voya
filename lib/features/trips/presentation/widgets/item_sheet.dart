@@ -5,6 +5,8 @@ import '../../../../core/constants/enums.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../data/models/cost.dart';
+import '../../../../data/models/item_details.dart';
 import '../../../../data/models/itinerary_item.dart';
 
 class ItemDraft {
@@ -12,11 +14,19 @@ class ItemDraft {
     required this.category,
     required this.title,
     required this.amount,
+    this.travelMode,
+    this.travelCost = const Cost(basis: CostBasis.perVehicle),
+    this.travelNote = '',
   });
 
   final ItemCategory category;
   final String title;
   final double amount;
+
+  /// Meals and activities: how they got there, null when they didn't say.
+  final TransportMode? travelMode;
+  final Cost travelCost;
+  final String travelNote;
 }
 
 /// Bottom sheet to add or edit an item. Returns null if dismissed.
@@ -26,6 +36,7 @@ Future<ItemDraft?> showItemSheet(
   required String currency,
   ItemCategory? initialCategory,
   List<ItemCategory>? categories,
+  String travelNote = '',
 }) {
   return showModalBottomSheet<ItemDraft>(
     context: context,
@@ -36,6 +47,7 @@ Future<ItemDraft?> showItemSheet(
       currency: currency,
       initialCategory: initialCategory,
       categories: categories,
+      travelNote: travelNote,
     ),
   );
 }
@@ -46,12 +58,16 @@ class _ItemSheet extends StatefulWidget {
     required this.currency,
     this.initialCategory,
     this.categories,
+    this.travelNote = '',
   });
 
   final ItineraryItem? existing;
   final String currency;
   final ItemCategory? initialCategory;
   final List<ItemCategory>? categories;
+
+  /// Prefills the note of a new ride, e.g. "From Diani Airbnb".
+  final String travelNote;
 
   @override
   State<_ItemSheet> createState() => _ItemSheetState();
@@ -64,6 +80,23 @@ class _ItemSheetState extends State<_ItemSheet> {
   late final _title = TextEditingController(text: widget.existing?.title ?? '');
   late final _amount = TextEditingController(text: _initialAmount());
 
+  late final TransportMode? _savedTravel = widget.existing?.travel;
+  late bool _rideOn = _savedTravel != null;
+  late TransportMode _rideMode = _savedTravel ?? TransportMode.matatu;
+  late CostBasis _rideBasis = _savedTravel == null
+      ? _rideMode.defaultTravelBasis
+      : widget.existing!.travelCost.basis;
+  late final _rideNote = TextEditingController(
+    text: _savedTravel == null ? widget.travelNote : widget.existing!.travelNote,
+  );
+  late final _rideAmount = TextEditingController(
+    text: Money.toInput(_savedTravel == null ? 0 : widget.existing!.travelCost.amount),
+  );
+
+  /// Meals and activities can record how you got there.
+  bool get _canTravel =>
+      _category == ItemCategory.meal || _category == ItemCategory.activity;
+
   String _initialAmount() {
     final a = widget.existing?.cost.amount ?? 0;
     if (a <= 0) return '';
@@ -74,6 +107,8 @@ class _ItemSheetState extends State<_ItemSheet> {
   void dispose() {
     _title.dispose();
     _amount.dispose();
+    _rideNote.dispose();
+    _rideAmount.dispose();
     super.dispose();
   }
 
@@ -95,9 +130,70 @@ class _ItemSheetState extends State<_ItemSheet> {
         category: _category,
         title: _title.text.trim(),
         amount: _parseAmount(_amount.text) ?? 0,
+        travelMode: _canTravel && _rideOn ? _rideMode : null,
+        travelCost: Cost(
+          amount: _rideBasis == CostBasis.free ? 0 : (_parseAmount(_rideAmount.text) ?? 0),
+          currency: widget.currency,
+          basis: _rideBasis,
+        ),
+        travelNote: _rideNote.text.trim(),
       ),
     );
   }
+
+  List<Widget> _rideFields() => [
+        const SizedBox(height: AppSpacing.sm),
+        DropdownButtonFormField<TransportMode>(
+          initialValue: _rideMode,
+          decoration: const InputDecoration(labelText: 'How?'),
+          items: [
+            for (final m in TransportMode.gettingAround)
+              DropdownMenuItem(
+                value: m,
+                child: Row(
+                  children: [
+                    Icon(m.icon, size: 18),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(m.label),
+                  ],
+                ),
+              ),
+          ],
+          onChanged: (m) => setState(() {
+            _rideMode = m ?? _rideMode;
+            _rideBasis = _rideMode.defaultTravelBasis;
+          }),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AppTextField(
+          controller: _rideNote,
+          label: 'Note (optional)',
+          helperText: 'e.g. From the Airbnb, about 15 minutes',
+          maxLength: 500,
+          textInputAction: TextInputAction.next,
+        ),
+        if (_rideBasis != CostBasis.free) ...[
+          const SizedBox(height: AppSpacing.xs),
+          AppTextField(
+            controller: _rideAmount,
+            label: 'Fare (optional)',
+            prefixText: '${Money.symbol(widget.currency)} ',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            validator: _validateAmount,
+          ),
+        ],
+        const SizedBox(height: AppSpacing.sm),
+        SegmentedButton<CostBasis>(
+          segments: const [
+            ButtonSegment(value: CostBasis.perPerson, label: Text('Per person')),
+            ButtonSegment(value: CostBasis.perVehicle, label: Text('Per vehicle')),
+            ButtonSegment(value: CostBasis.free, label: Text('Free')),
+          ],
+          selected: {_rideBasis},
+          onSelectionChanged: (s) => setState(() => _rideBasis = s.first),
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +269,16 @@ class _ItemSheetState extends State<_ItemSheet> {
                 validator: _validateAmount,
                 onSubmitted: (_) => _submit(),
               ),
+              if (_canTravel) ...[
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('How did you get there?'),
+                  subtitle: const Text('e.g. a boda or matatu from where you stayed'),
+                  value: _rideOn,
+                  onChanged: (v) => setState(() => _rideOn = v),
+                ),
+                if (_rideOn) ..._rideFields(),
+              ],
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Details like location, photos, links and booking info are added '

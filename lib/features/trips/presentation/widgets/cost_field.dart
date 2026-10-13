@@ -20,6 +20,7 @@ class CostField extends StatelessWidget {
     required this.total,
     required this.perPerson,
     this.onChanged,
+    this.label = 'Cost',
   });
 
   final TextEditingController amount;
@@ -32,6 +33,8 @@ class CostField extends StatelessWidget {
 
   /// Called on every keystroke in the amount field.
   final VoidCallback? onChanged;
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +52,7 @@ class CostField extends StatelessWidget {
               flex: 3,
               child: AppTextField(
                 controller: amount,
-                label: 'Cost',
+                label: label,
                 prefixText: '${Money.symbol(currency)} ',
                 enabled: !isFree,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),

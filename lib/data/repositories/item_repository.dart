@@ -22,10 +22,11 @@ class ItemRepository {
   }
 
   /// Creates (itemId null) or fully updates an item and its photos in one
-  /// database transaction. Returns the item's id.
+  /// database transaction. [dayId] is null for trip-level items (accommodation
+  /// and transport). Returns the item's id.
   Future<String> save({
     required String tripId,
-    required String dayId,
+    String? dayId,
     String? itemId,
     required ItemInput input,
   }) async {

@@ -29,6 +29,8 @@ import '../../../data/models/item_link.dart';
 import '../../trips/presentation/widgets/cost_field.dart';
 import '../../trips/presentation/widgets/links_editor.dart';
 import '../../trips/presentation/widgets/rating_field.dart';
+import '../../trips/presentation/widgets/common_item_sections.dart';
+import '../../trips/presentation/widgets/travel_section.dart';
 import '../../../data/models/item_photo.dart';
 import '../../../data/models/place_ref.dart';
 import '../../trips/presentation/widgets/captioned_photos_editor.dart';
@@ -62,9 +64,11 @@ class _ComponentGalleryScreenState
   int? _formRating;
   PlaceRef? _formLocation;
   List<ItemPhoto> _formPhotos = [];
+  final CommonItemFields _travel = CommonItemFields(null);
   @override
   void dispose() {
     _formAmount.dispose();
+    _travel.dispose();
     super.dispose();
   }
 
@@ -394,6 +398,17 @@ class _ComponentGalleryScreenState
             ),
           ),
           const _Section('Loading skeleton', TripCardSkeleton()),
+          _Section(
+            'How did you get there? (4 people)',
+            Form(
+              child: TravelSection(
+                fields: _travel,
+                currency: 'KES',
+                people: 4,
+                onChanged: () => setState(() {}),
+              ),
+            ),
+          ),
         ],
       ),
     );
